@@ -22,6 +22,7 @@
 # Written by Phil Burgess / Paint Your Dragon for Adafruit Industries.
 # BSD license, all text above must be included in any redistribution.
 
+import subprocess
 import atexit
 import cPickle as pickle
 import errno
@@ -37,7 +38,6 @@ import time
 import yuv2rgb
 from pygame.locals import *
 from subprocess import call  
-
 
 # UI classes ---------------------------------------------------------------
 
@@ -236,9 +236,9 @@ upconfig        = '/home/pi/.dropbox_uploader'
 
 sizeData = [ # Camera parameters for different size settings
  # Full res      Viewfinder  Crop window
- [(2592, 1944), (320, 240), (0.0   , 0.0   , 1.0   , 1.0   )], # Large
+ [(3280, 2460), (320, 240), (0.0   , 0.0   , 0.0   , 0.0   )], # Large
  [(1920, 1080), (320, 180), (0.1296, 0.2222, 0.7408, 0.5556)], # Med
- [(1440, 1080), (320, 240), (0.2222, 0.2222, 0.5556, 0.5556)]] # Small
+ [(512, 384), (320, 240), (0, 0, 0, 0)]] # Small
 
 isoData = [ # Values for ISO settings [ISO value, indicator X position]
  [  0,  27], [100,  64], [200,  97], [320, 137],
@@ -483,6 +483,10 @@ def takePicture():
 	    stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
 	  img    = pygame.image.load(filename)
 	  scaled = pygame.transform.scale(img, sizeData[sizeMode][1])
+          filenamepng = pathData[storeMode] + '/IMG_' + '%04d' % saveIdx + '.PNG'
+	  subprocess.call("convert %s -resize '512x384' -colorspace Gray  -ordered-dither o8x8  %s" % (filename, filenamepng), shell=True)
+	  time.sleep(0.5)
+	  subprocess.call("lp %s" % (filenamepng), shell=True)
 	  if storeMode == 2: # Dropbox
 	    if upconfig:
 	      cmd = uploader + ' -f ' + upconfig + ' upload ' + filename + ' Photos/' + os.path.basename(filename)
@@ -637,8 +641,8 @@ while(True):
        (240 - img.get_height()) / 2))
 
   # Overlay buttons on display and update
-  for i,b in enumerate(buttons[screenMode]):
-    b.draw(screen)
+  #for i,b in enumerate(buttons[screenMode]):
+    #b.draw(screen)
   pygame.display.update()
 
   screenModePrior = screenMode
